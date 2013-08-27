@@ -30,9 +30,14 @@ $queue->bind('hello', 'my.key');
 $queue->consume(function($envelope, $queue) {
 
 	$message = $envelope->getBody();
+	$deliveryTag = $envelope->getDeliveryTag();
+
 	echo $message . PHP_EOL;
 
-	return true;
-}, AMQP_AUTOACK);
+	sleep(substr_count($message, '.'));
+	
+	$queue->ack($deliveryTag);
+
+}, AMQP_NOPARAM);
 
 ?>

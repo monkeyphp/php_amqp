@@ -18,39 +18,60 @@ if ($connection->isConnected()) {
 	echo 'Connection is connected ' . PHP_EOL;
 }
 
-
 // create a channel
-$channel = new AMQPChannel($connection);
-
+try {
+	$channel = new AMQPChannel($connection);
+} catch(AMQPConnectionException $amqpException) {
+	echo $amqpException->getMessage();
+	exit;
+}
 
 // create an exchange
-$exchange = new AMQPExchange($channel);
-$exchange->setName('hello');
-$exchange->setType(AMQP_EX_TYPE_DIRECT);
-$exchange->declare();
+try {
+	$exchange = new AMQPExchange($channel);
+	$exchange->setName('hello');
+	$exchange->setType(AMQP_EX_TYPE_DIRECT);
+	$exchange->declare();
+} catch(AMQPConnectionException $amqpException) {
+	echo $amqpException->getMessage();
+	exit;
+}
 
 // create a queue
-$queue = new AMQPQueue($channel);
-$queue->setName('hello_world');
-$queue->declare();
+try {
+	$queue = new AMQPQueue($channel);
+	$queue->setName('hello_world');
+	$queue->declare();
+} catch(AMQPConnectionException $amqpException) {
+	echo $amqpException->getMessage();
+	exit;
+}
 
-$exchange->bind('hello', 'my.key');
+
+if (! $exchange->bind('hello', 'my.key')) {
+	echo 'Failed to bind exchange to queue' . PHP_EOL;
+}
 
 $x = 0;
 
-while($x < 10000) {
+while($x < 1000) {
 
-	$success = $exchange->publish("[$x]Hello World!", 'my.key');
+	$message = 'Message[' . str_repeat('.', rand(1, 5)) . ']';
+
+	$success = $exchange->publish($message, 'my.key');
 
 	if (! $success) {
 		echo 'Failed to send the message to the exchange';
 	} else {
-		echo 'Sent message ' . PHP_EOL;
+		echo 'Sent message: ' . $message . PHP_EOL;
 	}
 	$x++;
-	usleep(rand(10, 2000));
+	
 }
 
 $connection->disconnect();
-
+// check if the connection is connected
+if (! $connection->isConnected()) {
+	echo 'Connection is disconnected ' . PHP_EOL;
+}
 ?>
